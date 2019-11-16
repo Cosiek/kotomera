@@ -10,6 +10,10 @@ from picamera import PiCamera
 
 CAMERA = PiCamera()
 CAMERA.resolution = (1024, 768)
+CAMERA.sensor_mode = 3              # force long exposure mode
+CAMERA.shutter_speed = 1000000      # set shutter speed to 1s
+CAMERA.framerate = 1                # set framerate to 1fps
+CAMERA.iso = 800
 
 
 def it_is_on():
