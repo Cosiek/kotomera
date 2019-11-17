@@ -14,13 +14,12 @@ class SaveToDiskPictureProcessor:
         self.is_active = is_active
         self.media_dir = join(realpath(dirname(__file__)), 'media')
 
-    def process(self, content):
-        if not self.is_active:
-            return None
-
+    async def process(self, content):
         pth = join(self.media_dir, self.get_filename())
         with open(pth, 'bw') as f:
             f.write(content)
+
+        return content
 
     @staticmethod
     def get_filename():
@@ -41,3 +40,5 @@ class SendToKotomeraPictureProcessor:
             async with session.post(self.url, data=data) as resp:
                 print(resp.status)
                 print(await resp.text())
+
+        return content
