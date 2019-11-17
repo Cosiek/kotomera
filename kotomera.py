@@ -2,52 +2,52 @@
 # encoding: utf-8
 
 import asyncio
-from io import BytesIO
 import os
-from signal import pause
+from os.path import dirname, join, realpath
 
-import aiohttp
+from aiohttp import web
 from gpiozero import MotionSensor
-from picamera import PiCamera
 
-from cam_handling import get_camera_options, set_to_night_vision
+from helpers import async_to_sync
+from manager import CameraManager
+import picture_processors as pic_proc
 
-CAMERA = PiCamera(**get_camera_options())
-#set_to_night_vision(CAMERA)
-
-URL = os.environ['KOTOMERA_URL']
+_current_dir = realpath(dirname(__file__))
+MEDIA_DIR = join(_current_dir, 'media')
 
 
-def it_is_on():
-    print("It is on!")
-    # get image data
-    file_content = BytesIO()
-    CAMERA.capture(file_content, format='jpeg')
-    # send image
+def setup():
+    # make sure media dir exists
+    os.makedirs(MEDIA_DIR, 0o770, exist_ok=True)
+
+# VIEWS #######################################################################
+
+async def take_a_picture(request):
+    will = await request.app['cam_manager'].take_a_picture()
+    return web.Response(text=str(will))
+
+# APPLICATION #################################################################
+
+if __name__ == "__main__":
+    # prepare dirs
+    setup()
+    # get loop
     loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(send_jpg_file(file_content.getvalue()))
-    file_content.close()
+    # prepare web server
+    app = web.Application()
+    app.router.add_routes([
+        web.post('/picture', take_a_picture),
+    ])
+    # prepare camera manager
+    app['cam_manager'] = CameraManager()
+    app['cam_manager'].add_picture_processor(
+        pic_proc.SaveToDiskPictureProcessor())
+    app['cam_manager'].add_picture_processor(
+        pic_proc.SendToKotomeraPictureProcessor())
+    # prepare motion detector
+    sensor = MotionSensor(4)
+    sensor.when_motion = async_to_sync(app['cam_manager'].when_motion)
+    sensor.when_no_motion = async_to_sync(app['cam_manager'].when_no_motion)
 
+    web.run_app(app, port=8075, loop=loop)
 
-def it_is_off():
-    print("It's out!")
-
-
-async def send_jpg_file(file_content):
-    async with aiohttp.ClientSession() as session:
-        data = aiohttp.FormData()
-        data.add_field('file', file_content, filename='whatever.jpg',
-                       content_type='image/jpeg')
-
-        async with session.post(URL, data=data) as resp:
-            print(resp.status)
-            print(await resp.text())
-
-
-sensor = MotionSensor(4)
-
-sensor.when_motion = it_is_on
-sensor.when_no_motion = it_is_off
-
-pause()
