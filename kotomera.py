@@ -4,20 +4,16 @@
 import asyncio
 from io import BytesIO
 import os
-from datetime import datetime
 from signal import pause
 
 import aiohttp
 from gpiozero import MotionSensor
 from picamera import PiCamera
 
+from cam_handling import get_camera_options, set_to_night_vision
 
-CAMERA = PiCamera()
-CAMERA.resolution = (1024, 768)
-CAMERA.sensor_mode = 3              # force long exposure mode
-CAMERA.shutter_speed = 1000000      # set shutter speed to 1s
-CAMERA.framerate = 1                # set framerate to 1fps
-CAMERA.iso = 800
+CAMERA = PiCamera(**get_camera_options())
+#set_to_night_vision(CAMERA)
 
 URL = os.environ['KOTOMERA_URL']
 
