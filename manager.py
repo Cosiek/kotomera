@@ -34,6 +34,7 @@ class CameraManager:
     def cleanup(self):
         if self._camera is not None:
             self._camera.close()
+            self._camera = None
 
     def add_picture_processor(self, processor):
         self.picture_processors.append(processor)
@@ -51,9 +52,12 @@ class CameraManager:
         self.state = self.State.taking_a_picture
 
         camera = self.get_camera()
-        content = self._take_a_picture(camera)
-        await self.process_picture(content)
-        self.state = self.State.idle
+        try:
+            content = self._take_a_picture(camera)
+            await self.process_picture(content)
+        finally:
+            self.cleanup()
+            self.state = self.State.idle
         return True
 
     async def process_picture(self, content):
