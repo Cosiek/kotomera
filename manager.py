@@ -3,7 +3,6 @@
 
 from enum import Enum
 from io import BytesIO
-import socket
 
 from picamera import PiCamera
 
