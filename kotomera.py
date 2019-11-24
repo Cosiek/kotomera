@@ -11,6 +11,7 @@ from gpiozero import MotionSensor
 from helpers import async_to_sync
 from manager import CameraManager
 import picture_processors as pic_proc
+import video_file_factories
 
 _current_dir = realpath(dirname(__file__))
 MEDIA_DIR = join(_current_dir, 'media')
@@ -26,6 +27,16 @@ async def take_a_picture(request):
     will = await request.app['cam_manager'].take_a_picture()
     return web.Response(text=str(will))
 
+
+async def start_video(request):
+    will = await request.app['cam_manager'].start_video()
+    return web.Response(text=str(will))
+
+
+async def stop_video(request):
+    will = await request.app['cam_manager'].stop_video()
+    return web.Response(text=str(will))
+
 # APPLICATION #################################################################
 
 if __name__ == "__main__":
@@ -37,9 +48,13 @@ if __name__ == "__main__":
     app = web.Application()
     app.router.add_routes([
         web.post('/picture', take_a_picture),
+        web.get('/picture', take_a_picture),
+        web.get('/start_video', start_video),
+        web.get('/stop_video', stop_video),
     ])
     # prepare camera manager
     app['cam_manager'] = CameraManager()
+    app['cam_manager'].video_file_factory = video_file_factories.socket_connection_factory
     app['cam_manager'].add_picture_processor(
         pic_proc.SaveToDiskPictureProcessor())
     app['cam_manager'].add_picture_processor(
