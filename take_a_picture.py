@@ -72,6 +72,7 @@ def process_picture(pic: bytes, **kwargs):
 if __name__ == "__main__":
     # TODO: parse args
     kwargs = {
+        'camera_mode': None,
         'count': 1,
         'format': 'jpeg',
         'media_dir': join(_current_dir, 'media'),
