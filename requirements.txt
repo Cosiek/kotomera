@@ -1,3 +1,4 @@
 aiohttp==2.3.10
 gpiozero==1.5.1
+requests==2.22.0
 #picamera - install with atp!
