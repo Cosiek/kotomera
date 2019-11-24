@@ -3,6 +3,7 @@
 
 from enum import Enum
 from io import BytesIO
+import socket
 
 from picamera import PiCamera
 
@@ -14,12 +15,15 @@ class CameraManager:
     class State(Enum):
         idle = 0
         taking_a_picture = 1
+        making_a_video = 2
 
     def __init__(self):
         self.state = self.State.idle
         self._camera = None
 
         self.picture_processors = []
+        self.video_file_factory = None
+        self.video_file = None
 
     def get_camera(self):
         if self._camera is None:
@@ -35,6 +39,9 @@ class CameraManager:
         if self._camera is not None:
             self._camera.close()
             self._camera = None
+        if self.video_file is not None:
+            self.video_file.close()
+            self.video_file = None
 
     def add_picture_processor(self, processor):
         self.picture_processors.append(processor)
@@ -65,9 +72,37 @@ class CameraManager:
             await pp.process(content)
 
     def _take_a_picture(self, camera):
+        content = BytesIO()
         try:
-            content = BytesIO()
             camera.capture(content, format='jpeg')
             return content.getvalue()
         finally:
             content.close()
+
+    async def start_video(self):
+        if self.state != self.State.idle:
+            return False
+        self.state = self.State.making_a_video
+
+        camera = self.get_camera()
+        self.video_file = self._make_a_video(camera)
+        return True
+
+    def _make_a_video(self, camera):
+        vf = self.get_video_file()
+        camera.start_recording(vf, format='h264')
+        return vf
+
+    def stop_video(self):
+        if not self.state == self.State.making_a_video:
+            return False
+
+        camera = self.get_camera()
+        camera.stop_recording()
+
+        self.cleanup()
+        self.state = self.State.idle
+        return True
+
+    def get_video_file(self):
+        return self.video_file_factory()
