@@ -6,7 +6,7 @@ from picamera import PiCamera
 
 def get_camera_options(**kwargs):
     default = {
-        'resolution': (1024, 768),
+        'resolution': (640, 480),
         'framerate': 1,
         'sensor_mode': 3,
     }
