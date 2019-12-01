@@ -42,7 +42,7 @@ def save_to_disk(pic: bytes, **kwargs):
     filename generated from current date and time.
     """
     # get file name
-    filename = str(datetime.now()).replace(" ", "_") + kwargs['format']
+    filename = str(datetime.now()).replace(" ", "_") + "." + kwargs['format']
     file_path = join(kwargs['media_dir'], filename)
     # write it to a file
     with open(file_path, 'wb') as f:
@@ -55,8 +55,7 @@ def send_to_server(pic: bytes, **kwargs):
     """
     requests.post(
         kwargs['upload_url'],
-        data=pic,
-        headers={'Content-Type': 'application/' + kwargs['format']}
+        files={'name': ("filename." + kwargs['format'], pic, 'image/jpeg')}
     )
 
 
@@ -86,7 +85,7 @@ if __name__ == "__main__":
     # take a series of pictures
     for pic in take_a_series_of_pictures(cam, **kwargs):
         # process this picture
-        process_picture(pic)
+        process_picture(pic, kwargs)
         # sleep if required
         if kwargs['sleep']:
             sleep(kwargs['sleep'])
