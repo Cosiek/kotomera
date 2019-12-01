@@ -36,6 +36,7 @@ def get_camera(**kwargs):
     opts = get_camera_options()
     camera = PiCamera(**opts)
     adjust_camera(camera, **kwargs)
+    return camera
 
 # CAMERA MODES ================================================================
 
