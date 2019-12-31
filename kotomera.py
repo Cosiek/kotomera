@@ -66,7 +66,7 @@ class CameraManager:
 
         self.process = await asyncio.subprocess.create_subprocess_exec(
             "python3",
-            "kotovideo.py",
+            "kotopicture.py",
             self.socket_pth,
         )
 
