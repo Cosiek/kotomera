@@ -36,6 +36,10 @@ class CameraManager:
     def is_busy(self):
         return self.state != self.IDLE
 
+    @property
+    def is_filming(self):
+        return self.state == self.MAKING_A_VIDEO
+
     def _get_callback_function(self, url):
 
         async def callback(reader, writer):
@@ -91,8 +95,11 @@ class CameraManager:
         await self.process.wait()
 
     async def stop_recording(self):
-        if not self.MAKING_A_VIDEO:
+        if not self.is_filming:
             return False
+
+        self.process.terminate()
+        self.state = self.IDLE
 
 
 async def take_a_picture(request):
@@ -118,7 +125,14 @@ async def start_recording(request):
 
 
 async def stop_recording(request):
-    pass
+    resp = {
+        'request_accepted': False,
+    }
+    if request.app['cam'].is_filming:
+        await request.app['cam'].stop_recording()
+        resp['request_accepted'] = True
+    resp['state'] = request.app['cam'].state
+    return web.json_response(resp)
 
 
 if __name__ == "__main__":
