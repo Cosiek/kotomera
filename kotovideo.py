@@ -3,6 +3,7 @@
 
 import socket
 import sys
+import time
 
 from picamera import PiCamera
 
@@ -38,8 +39,9 @@ def run():
     camera.start_recording(connection, format='h264')
     #camera.start_recording(inspector, format='h264')
     i = 0
-    while i < 5:
-        camera.wait_recording(10)
+    while i < 6:
+        #camera.wait_recording(10)
+        time.sleep(10)
         i += 1
     camera.stop_recording()
     #    break
