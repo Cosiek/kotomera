@@ -102,6 +102,30 @@ class CameraManager:
         self.state = self.IDLE
 
 
+class MotionDetectorManager:
+
+    def __init__(self):
+        self.process = None
+
+    async def start(self):
+        if self.process is not None:
+            return "Already on"
+
+        self.process = await asyncio.subprocess.create_subprocess_exec(
+            "python3",
+            "kotomotion.py"
+        )
+        await self.process.wait()
+
+    def stop(self):
+        if self.process is None:
+            return "Already off."
+
+        self.process.terminate()
+        self.process = None
+        return "Terminated"
+
+
 async def take_a_picture(request):
     resp = {
         'request_accepted': False,
@@ -135,16 +159,29 @@ async def stop_recording(request):
     return web.json_response(resp)
 
 
+async def start_motion_detection(request):
+    asyncio.ensure_future(request.app['motion'].start())
+    return web.json_response({"msg": "OK?"})
+
+
+async def stop_motion_detection(request):
+    msg = request.app['motion'].stop()
+    return web.json_response({"msg": msg})
+
+
 if __name__ == "__main__":
     setup()
     app = web.Application()
 
     app['cam'] = CameraManager()
+    app['motion'] = MotionDetectorManager()
 
     app.router.add_routes([
         web.get('/take_a_picture', take_a_picture),
         web.get('/start_recording', start_recording),
         web.get('/stop_recording', stop_recording),
+        web.get('/start_motion_detection', start_motion_detection),
+        web.get('/stop_motion_detection', stop_motion_detection),
     ])
 
     web.run_app(app, port=8075)

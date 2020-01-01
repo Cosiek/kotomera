@@ -61,6 +61,20 @@ async def stop_recording(request):
         async with session.get(url) as resp:
             return web.json_response(await resp.json())
 
+
+async def start_motion_detection(request):
+    url = urls.get_kotomera_url('start_motion_detection')
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return web.json_response(await resp.json())
+
+
+async def stop_motion_detection(request):
+    url = urls.get_kotomera_url('stop_motion_detection')
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return web.json_response(await resp.json())
+
 # =============================================================================
 # RECEIVERS ===================================================================
 # =============================================================================
@@ -151,6 +165,8 @@ if __name__ == "__main__":
         web.get('/take_a_picture', take_a_picture),
         web.get('/start_recording', start_recording),
         web.get('/stop_recording', stop_recording),
+        web.get('/start_motion_detection', start_motion_detection),
+        web.get('/stop_motion_detection', stop_motion_detection),
         # receivers
         web.post(urls.KOTOSERVER['picture_upload'], picture_upload),
         web.post(urls.KOTOSERVER['video_upload'], video_stream_upload),
