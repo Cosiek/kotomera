@@ -93,6 +93,8 @@ class CameraManager:
         )
 
         await self.process.wait()
+        self.state = self.IDLE
+        self.process = None
 
     async def stop_recording(self):
         if not self.is_filming:
@@ -116,6 +118,7 @@ class MotionDetectorManager:
             "kotomotion.py"
         )
         await self.process.wait()
+        self.process = None
 
     def stop(self):
         if self.process is None:
