@@ -75,6 +75,8 @@ class CameraManager:
         )
 
         await self.process.wait()
+        self.state = self.IDLE
+        self.process = None
 
     async def start_recording(self):
         if self.is_busy:
