@@ -17,15 +17,14 @@ KOTOMERA = {
     'host': 'raspberrypi.local',
     'port': 8075,
     # control urls
-    'take_a_picture': '/take_a_picture',
-    'start_recording': '/start_recording',
-    'stop_recording': '/stop_recording',
 }
 
 
 def get_kotoserver_url(target):
-    return f"http://{KOTOSERVER['host']}:{KOTOSERVER['port']}{KOTOSERVER[target]}"
+    target_url = KOTOSERVER.get(target, '/' + target)
+    return f"http://{KOTOSERVER['host']}:{KOTOSERVER['port']}{target_url}"
 
 
 def get_kotomera_url(target):
-    return f"http://{KOTOMERA['host']}:{KOTOMERA['port']}{KOTOMERA[target]}"
+    target_url = KOTOMERA.get(target, '/' + target)
+    return f"http://{KOTOMERA['host']}:{KOTOMERA['port']}{target_url}"

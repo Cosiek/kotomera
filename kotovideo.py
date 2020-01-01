@@ -29,5 +29,5 @@ def run():
         sock.close()
 
 
-if __name__ == "__miain__":
+if __name__ == "__main__":
     run()
