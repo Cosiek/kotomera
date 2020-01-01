@@ -9,7 +9,10 @@ import urls
 
 
 def callback():
-    requests.get(urls.get_kotomera_url('take_a_picture'))
+    try:
+        requests.get(urls.get_kotomera_url('take_a_picture'))
+    except requests.ConnectionError:
+        pass
 
 
 pir = MotionSensor(4)
