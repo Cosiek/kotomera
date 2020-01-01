@@ -46,14 +46,14 @@ class CameraManager:
             # prepare receiver async iterator
             async def receiver():
                 while True:
-                    data = await reader.readline()
+                    data = await reader.readany()
                     if data:
                         yield data
                     else:
                         break
             # start sending data to target host
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=receiver()) as resp:
+                async with session.post(url, data=receiver(), timeout=None) as resp:
                     self.state = self.IDLE
 
         return callback
