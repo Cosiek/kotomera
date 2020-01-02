@@ -41,39 +41,42 @@ async def main(request):
 # =============================================================================
 
 
+async def handle_request(url):
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as resp:
+                return web.json_response(await resp.json())
+        except aiohttp.ClientConnectorError:
+            return web.json_response({
+                'request_accepted': False,
+                'state': None,
+                'msg': 'Failed to connect to kotomera (ClientConnectorError)'
+            })
+
+
 async def take_a_picture(request):
     url = urls.get_kotomera_url('take_a_picture')
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return web.json_response(await resp.json())
+    return await handle_request(url)
 
 
 async def start_recording(request):
     url = urls.get_kotomera_url('start_recording')
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return web.json_response(await resp.json())
+    return await handle_request(url)
 
 
 async def stop_recording(request):
     url = urls.get_kotomera_url('stop_recording')
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return web.json_response(await resp.json())
+    return await handle_request(url)
 
 
 async def start_motion_detection(request):
     url = urls.get_kotomera_url('start_motion_detection')
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return web.json_response(await resp.json())
+    return await handle_request(url)
 
 
 async def stop_motion_detection(request):
     url = urls.get_kotomera_url('stop_motion_detection')
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return web.json_response(await resp.json())
+    return await handle_request(url)
 
 # =============================================================================
 # RECEIVERS ===================================================================
