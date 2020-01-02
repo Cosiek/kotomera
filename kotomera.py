@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
+import argparse
 import asyncio
 import os
 from shlex import quote
@@ -18,6 +19,16 @@ def setup():
     # make sure media dir exists
     os.makedirs(MEDIA_DIR, 0o770, exist_ok=True)
 
+    # read options
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--send", action="store_true", default=True,
+                        help="Whether to send pictures/videos to remote server", )
+    #parser.add_argument("--save", action="store_true", default=False,
+    #                    help="Whether to save pictures/videos to a local drive")
+    args = parser.parse_args()
+
+    return args
+
 
 class CameraManager:
 
@@ -26,9 +37,11 @@ class CameraManager:
     TAKING_A_PICTURE = "taking a picture"
     MAKING_A_VIDEO = "making a video"
 
-    def __init__(self):
+    def __init__(self, send=True):
         self.state = self.IDLE
         self.process = None
+
+        self.send = send
 
         self.socket_pth = os.path.join(_current_dir, "socks")
 
@@ -41,7 +54,7 @@ class CameraManager:
         return self.state == self.MAKING_A_VIDEO
 
     def _get_callback_function(self, url):
-
+        send = self.send
         async def callback(reader, writer):
             # prepare receiver async iterator
             async def receiver():
@@ -51,10 +64,11 @@ class CameraManager:
                         yield data
                     else:
                         break
-            # start sending data to target host
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=receiver(), timeout=None) as resp:
-                    self.state = self.IDLE
+            if send:
+                # start sending data to target host
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, data=receiver(), timeout=None) as resp:
+                        self.state = self.IDLE
 
         return callback
 
@@ -175,10 +189,10 @@ async def stop_motion_detection(request):
 
 
 if __name__ == "__main__":
-    setup()
+    args = setup()
     app = web.Application()
 
-    app['cam'] = CameraManager()
+    app['cam'] = CameraManager(send=args.send)
     app['motion'] = MotionDetectorManager()
 
     app.router.add_routes([
