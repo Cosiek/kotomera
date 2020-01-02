@@ -62,28 +62,27 @@ class CameraManager:
         save = self.save
         async def callback(reader, writer):
             print(f"SAVE = {save}, SEND = {send}")
-            if save:
-                # open file to write to
-                file_ = open(os.path.join(MEDIA_DIR, filename), "wb")
-            else:
-                file_ = open(os.devnull, "wb")
-            # TODO: find a good spot to close these files properly
+            file_pth = os.path.join(MEDIA_DIR, filename) if save else os.devnull
 
             # prepare receiver async iterator
             async def receiver():
-                while True:
-                    data = await reader.read(3800)
-                    if data:
-                        file_.write(data)
-                        yield data
-                    else:
-                        file_.close()
-                        break
+                with open(file_pth, 'wb') as file_:
+                    while True:
+                        data = await reader.read(3800)
+                        if data:
+                            file_.write(data)
+                            yield data
+                        else:
+                            break
             if send:
                 # start sending data to target host
                 async with aiohttp.ClientSession() as session:
                     async with session.post(url, data=receiver(), timeout=None) as resp:
                         self.state = self.IDLE
+            elif save:
+                # just to make the iteration in case "send" id off
+                async for _ in receiver():
+                    pass
 
         return callback
 
