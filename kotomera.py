@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+from datetime import datetime
 import os
 from shlex import quote
 
@@ -16,16 +17,18 @@ MEDIA_DIR = os.path.join(_current_dir, 'media')
 
 
 def setup():
-    # make sure media dir exists
-    os.makedirs(MEDIA_DIR, 0o770, exist_ok=True)
-
     # read options
     parser = argparse.ArgumentParser()
-    parser.add_argument("--send", action="store_true", default=True,
+    parser.add_argument("--stop-send", action="store_true", default=False,
                         help="Whether to send pictures/videos to remote server", )
-    #parser.add_argument("--save", action="store_true", default=False,
-    #                    help="Whether to save pictures/videos to a local drive")
+    parser.add_argument("--save", action="store_true", default=False,
+                        help="Whether to save pictures/videos to a local drive")
     args = parser.parse_args()
+
+    print(args)
+    if args.save:
+        # make sure media dir exists
+        os.makedirs(MEDIA_DIR, 0o770, exist_ok=True)
 
     return args
 
@@ -37,11 +40,12 @@ class CameraManager:
     TAKING_A_PICTURE = "taking a picture"
     MAKING_A_VIDEO = "making a video"
 
-    def __init__(self, send=True):
+    def __init__(self, send=True, save=False):
         self.state = self.IDLE
         self.process = None
 
         self.send = send
+        self.save = save
 
         self.socket_pth = os.path.join(_current_dir, "socks")
 
@@ -53,16 +57,27 @@ class CameraManager:
     def is_filming(self):
         return self.state == self.MAKING_A_VIDEO
 
-    def _get_callback_function(self, url):
+    def _get_callback_function(self, url, filename):
         send = self.send
+        save = self.save
         async def callback(reader, writer):
+            print(f"SAVE = {save}, SEND = {send}")
+            if save:
+                # open file to write to
+                file_ = open(os.path.join(MEDIA_DIR, filename), "wb")
+            else:
+                file_ = open(os.devnull, "wb")
+            # TODO: find a good spot to close these files properly
+
             # prepare receiver async iterator
             async def receiver():
                 while True:
-                    data = await reader.readany()
+                    data = await reader.read(3800)
                     if data:
+                        file_.write(data)
                         yield data
                     else:
+                        file_.close()
                         break
             if send:
                 # start sending data to target host
@@ -78,7 +93,8 @@ class CameraManager:
         self.state = self.TAKING_A_PICTURE
 
         url = urls.get_kotoserver_url('picture_upload')
-        callback = self._get_callback_function(url)
+        filename = str(datetime.now()).replace(" ", "_") + '.jpg'
+        callback = self._get_callback_function(url, filename)
 
         await asyncio.start_unix_server(callback, path=self.socket_pth)
 
@@ -98,7 +114,8 @@ class CameraManager:
         self.state = self.MAKING_A_VIDEO
 
         url = urls.get_kotoserver_url('video_upload')
-        callback = self._get_callback_function(url)
+        filename = str(datetime.now()).replace(" ", "_") + '.h264'
+        callback = self._get_callback_function(url, filename)
 
         await asyncio.start_unix_server(callback, path=self.socket_pth)
 
@@ -192,7 +209,7 @@ if __name__ == "__main__":
     args = setup()
     app = web.Application()
 
-    app['cam'] = CameraManager(send=args.send)
+    app['cam'] = CameraManager(send=not args.stop_send, save=args.save)
     app['motion'] = MotionDetectorManager()
 
     app.router.add_routes([
