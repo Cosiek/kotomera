@@ -101,6 +101,7 @@ class CameraManager:
             "python3",
             "kotopicture.py",
             self.socket_pth,
+            # "-n"
         )
 
         await self.process.wait()
