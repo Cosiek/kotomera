@@ -137,7 +137,7 @@ class CameraManager:
         self.state = self.IDLE
 
 
-class MotionDetectorManager:
+class BaseTriggerManager:
 
     def __init__(self):
         self.process = None
@@ -146,10 +146,7 @@ class MotionDetectorManager:
         if self.process is not None:
             return "Already on"
 
-        self.process = await asyncio.subprocess.create_subprocess_exec(
-            "python3",
-            "kotomotion.py"
-        )
+        self.process = await self.get_process()
         await self.process.wait()
         self.process = None
 
@@ -160,6 +157,27 @@ class MotionDetectorManager:
         self.process.terminate()
         self.process = None
         return "Terminated"
+
+    async def get_process(self):
+        raise NotImplementedError
+
+
+class MotionDetectorManager(BaseTriggerManager):
+
+    async def get_process(self):
+        return await asyncio.subprocess.create_subprocess_exec(
+            "python3",
+            "kotomotion.py"
+        )
+
+
+class IntervalManager(BaseTriggerManager):
+
+    async def get_process(self):
+        return await asyncio.subprocess.create_subprocess_exec(
+            "python3",
+            "kotointerval.py"
+        )
 
 
 async def take_a_picture(request):
@@ -205,12 +223,23 @@ async def stop_motion_detection(request):
     return web.json_response({"msg": msg})
 
 
+async def start_interval(request):
+    asyncio.ensure_future(request.app['interval'].start())
+    return web.json_response({"msg": "OK?"})
+
+
+async def stop_interval(request):
+    msg = request.app['interval'].stop()
+    return web.json_response({"msg": msg})
+
+
 if __name__ == "__main__":
     args = setup()
     app = web.Application()
 
     app['cam'] = CameraManager(send=not args.stop_send, save=args.save)
     app['motion'] = MotionDetectorManager()
+    app['interval'] = IntervalManager()
 
     app.router.add_routes([
         web.get('/take_a_picture', take_a_picture),
@@ -218,6 +247,8 @@ if __name__ == "__main__":
         web.get('/stop_recording', stop_recording),
         web.get('/start_motion_detection', start_motion_detection),
         web.get('/stop_motion_detection', stop_motion_detection),
+        web.get('/start_interval', start_interval),
+        web.get('/stop_interval', stop_interval),
     ])
 
     web.run_app(app, port=8075)

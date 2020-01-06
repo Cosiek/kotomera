@@ -78,6 +78,17 @@ async def stop_motion_detection(request):
     url = urls.get_kotomera_url('stop_motion_detection')
     return await handle_request(url)
 
+
+async def start_interval(request):
+    url = urls.get_kotomera_url('start_interval')
+    return await handle_request(url)
+
+
+async def stop_interval(request):
+    url = urls.get_kotomera_url('stop_interval')
+    return await handle_request(url)
+
+
 # =============================================================================
 # RECEIVERS ===================================================================
 # =============================================================================
@@ -155,6 +166,8 @@ if __name__ == "__main__":
         web.get('/stop_recording', stop_recording),
         web.get('/start_motion_detection', start_motion_detection),
         web.get('/stop_motion_detection', stop_motion_detection),
+        web.get('/start_interval', start_interval),
+        web.get('/stop_interval', stop_interval),
         # receivers
         web.post(urls.KOTOSERVER['picture_upload'], picture_upload),
         web.post(urls.KOTOSERVER['video_upload'], video_stream_upload),
