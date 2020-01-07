@@ -14,7 +14,7 @@ KOTOSERVER = {
 }
 
 KOTOMERA = {
-    'host': 'raspberrypi.local',
+    'host': os.environ.get('KOTOMERA_HOST', 'raspberrypi.local'),
     'port': 8075,
     # control urls
 }
