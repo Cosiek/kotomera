@@ -95,16 +95,17 @@ class CameraManager:
         filename = str(datetime.now()).replace(" ", "_") + '.jpg'
         callback = self._get_callback_function(url, filename)
 
-        await asyncio.start_unix_server(callback, path=self.socket_pth)
+        unix_srv = await asyncio.start_unix_server(callback, path=self.socket_pth)
+        async with unix_srv:
+            self.process = await asyncio.subprocess.create_subprocess_exec(
+                "python3",
+                "kotopicture.py",
+                self.socket_pth,
+                # " -n"
+            )
 
-        self.process = await asyncio.subprocess.create_subprocess_exec(
-            "python3",
-            "kotopicture.py",
-            self.socket_pth,
-            # "-n"
-        )
+            await self.process.wait()
 
-        await self.process.wait()
         self.state = self.IDLE
         self.process = None
 
