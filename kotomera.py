@@ -95,13 +95,17 @@ class CameraManager:
         filename = str(datetime.now()).replace(" ", "_") + '.jpg'
         callback = self._get_callback_function(url, filename)
 
+        now = datetime.now()
+        is_dark = now.hour < 8 or 16 < now.hour
+        args = ["-n"] if is_dark else []
+
         unix_srv = await asyncio.start_unix_server(callback, path=self.socket_pth)
         async with unix_srv:
             self.process = await asyncio.subprocess.create_subprocess_exec(
                 "python3",
                 "kotopicture.py",
                 self.socket_pth,
-                # " -n"
+                *args
             )
 
             await self.process.wait()
