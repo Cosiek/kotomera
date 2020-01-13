@@ -33,11 +33,26 @@ async def picture_upload(request):
     return web.Response(text='Ok')
 
 
+async def video_stream_upload(request):
+    """
+    Receives a video stream and writes it to a file.
+    """
+    filename = str(datetime.now()).replace(" ", "_") + '.h264'
+    print("Writing ", filename)
+    with open(os.path.join(MEDIA_DIR, filename), 'wb') as f:
+        async for data, _ in request.content.iter_chunks():
+            print("Got chunk")
+            f.write(data)
+
+    return web.Response(text='Ok')
+
+
 if __name__ == "__main__":
     setup()
     app = web.Application()
     app.router.add_routes([
         web.post('/picture_upload', picture_upload),
+        web.post('/video_stream_upload', video_stream_upload),
     ])
 
     web.run_app(app, port=8075)
