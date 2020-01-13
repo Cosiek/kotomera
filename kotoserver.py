@@ -93,21 +93,6 @@ async def picture_upload(request):
     return web.Response(text='Ok')
 
 
-
-async def picture_upload_OLD(request):
-    reader = await request.multipart()
-    field = await reader.next()
-    filename = str(datetime.now()).replace(" ", "_") + '.jpg'
-    with open(os.path.join(MEDIA_DIR, filename), 'wb') as f:
-        while True:
-            chunk = await field.read_chunk()  # 8192 bytes by default.
-            if not chunk:
-                break
-            f.write(chunk)
-
-    return web.Response(text='Ok')
-
-
 async def video_stream_upload(request):
     """
     Receives a video stream and writes it to a file.
