@@ -5,7 +5,10 @@ import asyncio
 import os
 from shlex import quote
 
+import aiohttp
 from aiohttp import web
+
+import urls
 
 _current_dir = os.path.realpath(os.path.dirname(__file__))
 MEDIA_DIR = os.path.join(_current_dir, 'media')
@@ -16,60 +19,118 @@ def setup():
     os.makedirs(MEDIA_DIR, 0o770, exist_ok=True)
 
 
-async def run_command(cmd, kwargs):
-    # TODO: pass args to command line
-    args_str = ""
-    cmd = cmd.format(quote(args_str))
+class CameraManager:
 
-    proc = await asyncio.create_subprocess_exec(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
+    # states
+    IDLE = "idle"
+    TAKING_A_PICTURE = "taking a picture"
+    MAKING_A_VIDEO = "making a video"
 
-    await proc.wait()
+    def __init__(self):
+        self.state = self.IDLE
+        self.process = None
 
-    return proc
+        self.socket_pth = os.path.join(_current_dir, "socks")
+
+    @property
+    def is_busy(self):
+        return self.state != self.IDLE
+
+    def _get_callback_function(self, url):
+
+        async def callback(reader, writer):
+            # prepare receiver async iterator
+            async def receiver():
+                while True:
+                    data = await reader.readline()
+                    if data:
+                        yield data
+                    else:
+                        break
+            # start sending data to target host
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, data=receiver()) as resp:
+                    self.state = self.IDLE
+
+        return callback
+
+    async def take_a_picture(self):
+        if self.is_busy:
+            return
+        self.state = self.TAKING_A_PICTURE
+
+        url = urls.get_kotoserver_url('picture_upload')
+        callback = self._get_callback_function(url)
+
+        await asyncio.start_unix_server(callback, path=self.socket_pth)
+
+        self.process = await asyncio.subprocess.create_subprocess_exec(
+            "python3",
+            "kotovideo.py",
+            self.socket_pth,
+        )
+
+        await self.process.wait()
+
+    async def start_recording(self):
+        if self.is_busy:
+            return
+        self.state = self.MAKING_A_VIDEO
+
+        url = urls.get_kotoserver_url('video_upload')
+        callback = self._get_callback_function(url)
+
+        await asyncio.start_unix_server(callback, path=self.socket_pth)
+
+        self.process = await asyncio.subprocess.create_subprocess_exec(
+            "python3",
+            "kotovideo.py",
+            self.socket_pth,
+        )
+
+        await self.process.wait()
+
+    async def stop_recording(self):
+        if not self.MAKING_A_VIDEO:
+            return False
 
 
-async def take_some_pictures(request):
-    """
-    Receives an image and writes it down to disk.
-    """
-    # prepare args to start pictures
-    kwargs = {
-        'camera_mode': None,
-        'count': 1,
-        'format': 'jpeg',
-        'media_dir': MEDIA_DIR,
-        'save': True,
-        'send': True,
-        'sleep': 0,
-        'upload_url': os.environ['KOTOMERA_PICTURE_URL']
+async def take_a_picture(request):
+    resp = {
+        'request_accepted': False,
+        'state': request.app['cam'].state
     }
-    # use async to start "take_a_picture" script
-    task = asyncio.ensure_future(
-        run_command("python3 take_a_picture.py {}", kwargs)
-    )
-    # check if script didn't fail in first second
-    await asyncio.sleep(1)
-    # return response
-    if task.done():
-        result = task.result()
-        if result.returncode == 0:
-            return web.Response(text='Done')
-        else:
-            msg = "Fial\n" + result.stderr.read()
-            return web.Response(text=msg)
-    return web.Response(text='Working')
+    if not request.app['cam'].is_busy:
+        asyncio.ensure_future(request.app['cam'].take_a_picture())
+        resp['request_accepted'] = True
+    return web.json_response(resp)
+
+
+async def start_recording(request):
+    resp = {
+        'request_accepted': False,
+        'state': request.app['cam'].state
+    }
+    if not request.app['cam'].is_busy:
+        asyncio.ensure_future(request.app['cam'].start_recording())
+        resp['request_accepted'] = True
+    return web.json_response(resp)
+
+
+async def stop_recording(request):
+    pass
 
 
 if __name__ == "__main__":
     setup()
     app = web.Application()
+
+    app['cam'] = CameraManager()
+
     app.router.add_routes([
-        web.post('/take_a_picture', take_some_pictures),
-        web.get('/take_a_picture', take_some_pictures),  # for dev use only
+        web.get('/take_a_picture', take_a_picture),
+        web.get('/start_recording', start_recording),
+        web.get('/stop_recording', stop_recording),
     ])
 
     web.run_app(app, port=8075)

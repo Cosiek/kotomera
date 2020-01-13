@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # take a series of pictures
     for pic in take_a_series_of_pictures(cam, **kwargs):
         # process this picture
-        process_picture(pic, kwargs)
+        process_picture(pic, **kwargs)
         # sleep if required
         if kwargs['sleep']:
             sleep(kwargs['sleep'])
