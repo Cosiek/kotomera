@@ -1,4 +1,4 @@
-aiohttp==3.6.2
+aiohttp==3.7.4
 aiohttp_jinja2==1.2.0
 gpiozero==1.5.1
 requests==2.22.0
